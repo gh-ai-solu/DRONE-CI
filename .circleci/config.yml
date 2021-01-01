@@ -1,0 +1,47 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@0.2.1
+  aws-ecr: circleci/aws-ecr@6.9.1
+
+jobs:
+  build-and-test:
+    executor: python/default
+    steps:
+      - checkout
+      - python/load-cache
+      - python/install-deps
+      - python/save-cache
+      - run:
+          command: python test_app.py
+          name: Test
+
+workflows:  
+  main:
+    jobs:
+      - build-and-test:
+          filters:
+            branches:
+              only:
+                - master
+                - dev
+                - test
+  ecr_push:
+    jobs:
+      - aws-ecr/build-and-push-image:
+          account-url: AWS_ECR_ACCOUNT_URL
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          create-repo: true
+          dockerfile: Dockerfile
+          path: .
+          region: AWS_REGION
+          repo: "${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}"
+          context: ecr-context
+          filters:
+            branches:
+              only:
+                - master
+                - dev
+                - test
+
